@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Adrian OS</title>
+</head>
+
+<body>
+  <div id="os_wrapper">
+    <div id="desktop">
+      <!-- <div class="file text-file" style="--x: 30%; --y: 20%;">
+        <div>
+          <u-icon name="saved" width="28"></u-icon>
+        </div>
+        <p>superlonginput.txt</p>
+      </div> -->
+
+    </div>
+    <div id="taskbar">
+      <div id="taskbar_apps">
+      </div>
+      <div id="taskbar_actions">
+        <div class="taskbar_drop_action" id="drop_to_download">
+          <u-icon name="download" width="18"></u-icon>
+          <span>Drop Files Here to Download</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</body>
+<style>
+  #drop_to_download {
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  #drop_to_download span {
+    font-weight: 400;
+  }
+  .taskbar_drop_action {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .file>div {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .file.file-text>div {
+    background: #FFD78A;
+  }
+
+  .file.file-image>div {
+    background: #00AA8C;
+  }
+
+  .file {
+    align-items: center;
+    width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: absolute;
+    top: var(--pos-y);
+    left: var(--pos-x);
+    padding: 12px 4px;
+    user-select: none;
+    border: 1px solid transparent;
+  }
+
+  .file.focused,
+  .file.focused:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px dotted gray;
+  }
+
+  .file:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .file p {
+    font-size: 14px;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .app-tile {
+    height: 40px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    transition: 0.15s transform;
+    cursor:pointer;
+  }
+
+  .app-tile:hover {
+    transform: scale(0.9);
+  }
+
+  .app-tile.file-text {
+    background: #FFD78A;
+  }
+
+  .app-tile.file-image {
+    background: #00AA8C;
+  }
+
+  .app-tile.camera {
+    background: #373DCF;
+    fill: white;
+  }
+</style>
+<script>
+  window.$ = (s) => document.querySelector(s);
+
+  //<!-- ****  JavaScript Feature submission **** -->
+  window.set_style_var = (e, k, v) => {
+    e.style.setProperty("--" + k, v);
+  }
+
+  window.get_style_var = (e, k) => {
+    return e.style.getPropertyValue("--" + k);
+  }
+
+  //JavaScript HTML Sanitizer v2.0.2, (c) Alexander Yumashev, Jitbit Software.
+
+  //homepage https://github.com/jitbit/HtmlSanitizer
+
+  //License: MIT https://github.com/jitbit/HtmlSanitizer/blob/master/LICENSE
+
+  // NOT MY CODE
+  const HtmlSanitizer = new (function () {
+
+    const _tagWhitelist = {
+      'A': true, 'ABBR': true, 'B': true, 'BLOCKQUOTE': true, 'BODY': true, 'BR': true, 'CENTER': true, 'CODE': true, 'DD': true, 'DIV': true, 'DL': true, 'DT': true, 'EM': true, 'FONT': true,
+      'H1': true, 'H2': true, 'H3': true, 'H4': true, 'H5': true, 'H6': true, 'HR': true, 'I': true, 'IMG': true, 'LABEL': true, 'LI': true, 'OL': true, 'P': true, 'PRE': true,
+      'SMALL': true, 'SOURCE': true, 'SPAN': true, 'STRONG': true, 'SUB': true, 'SUP': true, 'TABLE': true, 'TBODY': true, 'TR': true, 'TD': true, 'TH': true, 'THEAD': true, 'UL': true, 'U': true, 'VIDEO': true
+    };
+
+    const _contentTagWhiteList = {'FORM': true, 'GOOGLE-SHEETS-HTML-ORIGIN': true}; //tags that will be converted to DIVs
+
+    const _attributeWhitelist = {'align': true, 'color': true, 'controls': true, 'height': true, 'href': true, 'id': true, 'src': true, 'style': true, 'target': true, 'title': true, 'type': true, 'width': true};
+
+    const _cssWhitelist = {'background-color': true, 'color': true, 'font-size': true, 'font-weight': true, 'text-align': true, 'text-decoration': true, 'width': true};
+
+    const _schemaWhiteList = ['http:', 'https:', 'data:', 'm-files:', 'file:', 'ftp:', 'mailto:', 'pw:']; //which "protocols" are allowed in "href", "src" etc
+
+    const _uriAttributes = {'href': true, 'action': true};
+
+    const _parser = new DOMParser();
+
+    this.SanitizeHtml = function (input, extraSelector) {
+      input = input.trim();
+      if (input == "") return ""; //to save performance
+
+      //firefox "bogus node" workaround for wysiwyg's
+      if (input == "<br>") return "";
+
+      if (input.indexOf("<body") == -1) input = "<body>" + input + "</body>"; //add "body" otherwise some tags are skipped, like <style>
+
+      let doc = _parser.parseFromString(input, "text/html");
+
+      //DOM clobbering check (damn you firefox)
+      if (doc.body.tagName !== 'BODY')
+        doc.body.remove();
+      if (typeof doc.createElement !== 'function')
+        doc.createElement.remove();
+
+      function makeSanitizedCopy(node) {
+        let newNode;
+        if (node.nodeType == Node.TEXT_NODE) {
+          newNode = node.cloneNode(true);
+        } else if (node.nodeType == Node.ELEMENT_NODE && (_tagWhitelist[node.tagName] || _contentTagWhiteList[node.tagName] || (extraSelector && node.matches(extraSelector)))) { //is tag allowed?
+
+          if (_contentTagWhiteList[node.tagName])
+            newNode = doc.createElement('DIV'); //convert to DIV
+          else
+            newNode = doc.createElement(node.tagName);
+
+          for (let i = 0; i < node.attributes.length; i++) {
+            let attr = node.attributes[i];
+            if (_attributeWhitelist[attr.name]) {
+              if (attr.name == "style") {
+                for (let s = 0; s < node.style.length; s++) {
+                  let styleName = node.style[s];
+                  if (_cssWhitelist[styleName])
+                    newNode.style.setProperty(styleName, node.style.getPropertyValue(styleName));
+                }
+              }
+              else {
+                if (_uriAttributes[attr.name]) { //if this is a "uri" attribute, that can have "javascript:" or something
+                  if (attr.value.indexOf(":") > -1 && !startsWithAny(attr.value, _schemaWhiteList))
+                    continue;
+                }
+                newNode.setAttribute(attr.name, attr.value);
+              }
+            }
+          }
+          for (let i = 0; i < node.childNodes.length; i++) {
+            let subCopy = makeSanitizedCopy(node.childNodes[i]);
+            newNode.appendChild(subCopy, false);
+          }
+
+          //remove useless empty spans (lots of those when pasting from MS Outlook)
+          if ((newNode.tagName == "SPAN" || newNode.tagName == "B" || newNode.tagName == "I" || newNode.tagName == "U")
+            && newNode.innerHTML.trim() == "") {
+            return doc.createDocumentFragment();
+          }
+
+        } else {
+          newNode = doc.createDocumentFragment();
+        }
+        return newNode;
+      };
+
+      let resultElement = makeSanitizedCopy(doc.body);
+
+      return resultElement.innerHTML
+        .replace(/<br[^>]*>(\S)/g, "<br>\n$1")
+        .replace(/div><div/g, "div>\n<div"); //replace is just for cleaner code
+    }
+
+    function startsWithAny(str, substrings) {
+      for (let i = 0; i < substrings.length; i++) {
+        if (str.indexOf(substrings[i]) == 0) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    this.AllowedTags = _tagWhitelist;
+    this.AllowedAttributes = _attributeWhitelist;
+    this.AllowedCssStyles = _cssWhitelist;
+    this.AllowedSchemas = _schemaWhiteList;
+  });
+
+  //<!-- ****  HTML Feature submission **** -->
+  //<!-- ****  (custom elements) **** -->
+  class Icon extends HTMLElement {
+    static ICONS = { // from ionicons
+      "close": `<svg xmlns="http://www.w3.org/2000/svg" class="ionicon" viewBox="0 0 512 512"><path d="M400 145.49L366.51 112 256 222.51 145.49 112 112 145.49 222.51 256 112 366.51 145.49 400 256 289.49 366.51 400 400 366.51 289.49 256 400 145.49z"/></svg>`,
+      "bold": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M272-200v-560h221q65 0 120 40t55 111q0 51-23 78.5T602-491q25 11 55.5 41t30.5 90q0 89-65 124.5T501-200H272Zm121-112h104q48 0 58.5-24.5T566-372q0-11-10.5-35.5T494-432H393v120Zm0-228h93q33 0 48-17t15-38q0-24-17-39t-44-15h-95v109Z"/></svg>`,
+      "italic": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-200v-100h160l120-360H320v-100h400v100H580L460-300h140v100H200Z"/></svg>`,
+      "underline": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-120v-80h560v80H200Zm280-160q-101 0-157-63t-56-167v-330h103v336q0 56 28 91t82 35q54 0 82-35t28-91v-336h103v330q0 104-56 167t-157 63Z"/></svg>`,
+      "header": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-280v-400h80v160h160v-160h80v400h-80v-160H280v160h-80Zm480 0v-320h-80v-80h160v400h-80Z"/></svg>`,
+      "save": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M840-680v480q0 33-23.5 56.5T760-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h480l160 160Zm-80 34L646-760H200v560h560v-446ZM480-240q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM240-560h360v-160H240v160Zm-40-86v446-560 114Z"/></svg>`,
+      "saved": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m437-398 227-226-57-57-170 170-85-85-56 56 141 142ZM40-120v-80h880v80H40Zm120-120q-33 0-56.5-23.5T80-320v-440q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v440q0 33-23.5 56.5T800-240H160Zm0-80h640v-440H160v440Zm0 0v-440 440Z"/></svg>`,
+      "file-text": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>`,
+      "camera": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-260q75 0 127.5-52.5T660-440q0-75-52.5-127.5T480-620q-75 0-127.5 52.5T300-440q0 75 52.5 127.5T480-260Zm0-80q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29ZM160-120q-33 0-56.5-23.5T80-200v-480q0-33 23.5-56.5T160-760h126l74-80h240l74 80h126q33 0 56.5 23.5T880-680v480q0 33-23.5 56.5T800-120H160Zm0-80h640v-480H638l-73-80H395l-73 80H160v480Zm320-240Z"/></svg>`,
+      "shrink-image": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M520-120H200q-33 0-56.5-23.5T120-200v-320h400v400Zm-360-80h320L376-340l-76 100-56-74-84 114Zm40-560h-80q0-33 23.5-56.5T200-840v80Zm80 0v-80h80v80h-80Zm160 0v-80h80v80h-80Zm160 0v-80h80v80h-80Zm0 640v-80h80v80h-80Zm160-640v-80q33 0 56.5 23.5T840-760h-80ZM120-600v-80h80v80h-80Zm640 400h80q0 33-23.5 56.5T760-120v-80Zm0-80v-80h80v80h-80Zm0-160v-80h80v80h-80Zm0-160v-80h80v80h-80Z"/></svg>`,
+      "stretch-image": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M220-344q65-8 129.5-12t130.5-4q66 0 130.5 4T740-344L560-560 446-424l-80-96-146 176ZM120-160q-17 0-28.5-11.5T80-200v-560q0-17 11.5-28.5T120-800q8 0 35.5 9.5T229-770q46 11 108.5 20.5T480-740q80 0 142.5-9.5T731-770q46-11 73.5-20.5T840-800q17 0 28.5 11.5T880-760v560q0 17-11.5 28.5T840-160q-8 0-35.5-9.5T731-190q-46-11-108.5-20.5T480-220q-80 0-142.5 9.5T229-190q-46 11-73.5 20.5T120-160Zm40-94q78-23 158.5-34.5T480-300q81 0 161.5 11.5T800-254v-451q-78 23-158.5 34T480-660q-81 0-161.5-11T160-705v451Zm320-226Z"/></svg>`,
+      "spread-image": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80Z"/></svg>`,
+      "lock-window": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m80-80 800-800v400h-80v-206L273-160h327v80H80Zm634 0q-14 0-24-10t-10-24v-132q0-14 10-24t24-10h6v-40q0-33 23.5-56.5T800-400q33 0 56.5 23.5T880-320v40h6q14 0 24 10t10 24v132q0 14-10 24t-24 10H714Zm46-200h80v-40q0-17-11.5-28.5T800-360q-17 0-28.5 11.5T760-320v40ZM273-160l527-526Q681-567 536.5-423T273-160Z"/></svg>`,
+      "file-image": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/></svg>`,
+  "camera-capture": `<svg width="58" height="58" viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="12.2446" y="12.2444" width="33.5111" height="33.5111" fill="white"/>
+<rect x="3.22222" y="3.22222" width="51.5556" height="51.5556" stroke="white" stroke-width="6.44444"/>
+</svg>`,
+      "camera-start-video": `<svg width="45" height="30" viewBox="0 0 45 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="30.9375" height="30" fill="#FF5454"/>
+<path d="M25.3125 14.5312L40.0781 6.00631L40.0781 23.0562L25.3125 14.5312Z" fill="#FF5454"/>
+</svg>`,
+      "camera-stop-video": `<svg width="58" height="58" viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="12.2441" y="12.2444" width="33.5111" height="33.5111" fill="#FF5454"/>
+<rect x="3.22222" y="3.22222" width="51.5556" height="51.5556" stroke="white" stroke-width="6.44444"/>
+</svg>`,
+      "download": `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>`
+
+    }
+    static observedAttributes = ["name", "width"];
+
+    constructor() {
+      super();
+      this.attachShadow({mode: "open"});
+    }
+
+    connectedCallback() {
+
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === "name") {
+        this.shadowRoot.innerHTML = `${Icon.ICONS[newValue]}`
+        this.shadowRoot.firstChild.setAttribute("width", this.getAttribute("width") || "32")
+        this.shadowRoot.firstChild.setAttribute("height", this.getAttribute("height") || "32")
+      } else if (name === "width") {
+        this.shadowRoot.firstChild.setAttribute("width", newValue)
+      }
+    }
+  }
+
+  customElements.define("u-icon", Icon);
+
+
+</script>
+<script>
+
+  class PhotoResultDisplay {
+    constructor(recorder, dataURL) {
+      this.recorder = recorder
+      this.dataURL = dataURL
+      this.display = this.recorder.camera.app_window.content.querySelector(".Camera__result_display")
+
+      //<!-- ****  JavaScript Feature submission **** -->
+      //<!-- ****  (manipulating the dom) **** -->
+      this.display.innerHTML = `
+        <img src="${this.dataURL}" alt="Photo Result" />
+        ${true ? "" : `<div class="Camera__result_display_captions">
+        </div>
+        <div class="Camera__result_display_sidebar">
+          <button action="text">
+            Add Text
+          </button>
+        </div>`}
+        <div class="Camera__result_display_buttons">
+          <button class="primary Camera__result_display_button_save">
+            Save
+          </button>
+          <button class="secondary Camera__result_display_button_delete">
+            Delete
+          </button>
+        </div>
+      `
+
+      const saveButton = this.display.querySelector(".Camera__result_display_button_save");
+
+      saveButton.addEventListener("click", (e) => {
+        const fileNamePromise = os.createUniqueFileName("Photo", "png")
+        fileNamePromise.then((fileName) => {
+          os.addFile(fileName, this.dataURL);
+        });
+
+
+        recorder.camera.recorder = null;
+        recorder.camera.load();
+        
+      })
+      
+      const deleteButton =  this.display.querySelector(".Camera__result_display_button_delete");
+
+      deleteButton.addEventListener("click", (e) => {
+        recorder.camera.recorder = null;
+        recorder.camera.load();
+      })
+      // this.captions = this.display.querySelector(".Camera__result_display_captions")
+
+      // this.display.querySelector(".Camera__result_display_sidebar button[action=\"text\"").addEventListener("click", () => {
+      //   this.add_caption()
+      // });
+
+    }
+
+    add_caption() {
+      const caption = document.createElement("div")
+      caption.className = "Camera__result_display_caption"
+      set_style_var(caption, "pos-x", 0);
+      set_style_var(caption, "pos-y", 0);
+
+      caption.innerHTML = `
+        <h3 contenteditable="true">test</h3>
+      `
+      const text = caption.querySelector("h3")
+
+      this.captions.appendChild(caption)
+
+      const updateAlign = () => {
+        //<!-- ****  JavaScript Feature submission **** -->
+        //<!-- ****  (getBoundingClientRect) **** -->
+        const clientRect = caption.getBoundingClientRect();
+        const width = this.recorder.camera.app_window.w;
+
+        caption.setAttribute("animate-position", true);
+
+        setTimeout(() => {
+          const minX = 20 / width * 100;
+          const maxX = 100 - (clientRect.width + 20) / width * 100
+
+          set_style_var(caption, "pos-x", Math.min(maxX, Math.max(minX, parseFloat(get_style_var(caption, "pos-x")))) + "%");
+
+          setTimeout(() => {
+            caption.setAttribute("animate-position", false);
+          }, 250)
+        }, 0)
+
+        const captionWidth = caption.offsetWidth;
+        const percent = parseFloat(get_style_var(caption, "pos-x")) / 100 + captionWidth / this.recorder.camera.app_window.w / 2;
+
+        if (percent < .25) {
+          set_style_var(caption, "align", "left")
+        } else if (percent > .75) {
+          set_style_var(caption, "align", "right")
+        } else {
+          set_style_var(caption, "align", "center")
+        }
+      }
+      text.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          text.blur()
+        }
+      });
+
+      text.addEventListener("blur", (e) => {
+        updateAlign()
+      });
+
+      text.addEventListener("input", (e) => {
+        setTimeout(() => {
+          if (text.textContent.trim() != text.innerHTML.replaceAll("\&nbsp;", " ").trim()) {
+            // remove line breaks
+            text.innerText = text.innerText.replaceAll(/(\r\n|\n|\r)/gm, "")
+          }
+        }, 0)
+      })
+
+      caption.addEventListener("mousedown", (e) => {
+
+        if (e.button !== 0) return;
+        if (text.contains(e.target)) return;
+
+        const originalMouseX = e.clientX;
+        const originalMouseY = e.clientY;
+
+        const height = this.recorder.camera.app_window.h;
+        const width = this.recorder.camera.app_window.w;
+        const windowX = this.recorder.camera.app_window.x;
+
+        const originalElementX = parseFloat(get_style_var(caption, "pos-x")) / 100;
+        const originalElementY = parseFloat(get_style_var(caption, "pos-y")) / 100;
+
+        let currentMouseX = originalMouseX;
+        let currentMouseY = originalMouseY;
+
+        const clientRect = caption.getBoundingClientRect();
+
+        const e1 = (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+
+          currentMouseX = e.clientX;
+          currentMouseY = e.clientY;
+
+          const x = (e.clientX - originalMouseX) / width;
+          const y = (e.clientY - originalMouseY) / height;
+
+          set_style_var(caption, "pos-x", (originalElementX + x) * 100 + "%");
+          set_style_var(caption, "pos-y", (originalElementY + y) * 100 + "%");
+        }
+
+        const e2 = (e) => {
+          updateAlign();
+
+          document.removeEventListener("mousemove", e1)
+          document.removeEventListener("mouseup", e2)
+        }
+
+
+        document.addEventListener("mousemove", e1)
+        document.addEventListener("mouseup", e2)
+      })
+    }
+  }
+
+
+  class CameraRecorder {
+    constructor(camera, type) {
+      this.camera = camera
+      this.type = type
+      this.result = this.camera.app_window.content.querySelector(".Camera__result_display")
+    }
+
+    get display() {
+      return this._display;
+    }
+
+    set display(value) {
+      if (value) {
+        this.result.removeAttribute("hidden")
+      } else {
+        this.result.setAttribute("hidden", !value)
+      }
+      this._display = value;
+    }
+
+    prepare() {
+      if (this.type === "photo") return;
+      // adapted from https://medium.com/@amatewasu/how-to-record-a-canvas-element-d4d0826d3591
+
+      this.video_stream = this.camera.canvas1.captureStream(30);
+      this.media_recorder = new MediaRecorder(this.video_stream);
+
+      let chunks = [];
+
+      this.media_recorder.ondataavailable = function (e) {
+        chunks.push(e.data);
+      };
+
+      this.media_recorder.onstop = function (e) {
+        const blob = new Blob(chunks, {'type': 'video/webm'}); // other types are available such as 'video/webm' for instance, see the doc for more info
+        chunks = [];
+        const videoURL = URL.createObjectURL(blob);
+
+
+        // TODO make a function for downlodaing this to fake computer or real one
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        a.href = videoURL;
+        a.download = 'video.webm';
+        a.click();
+        window.URL.revokeObjectURL(videoURL);
+        // video.src = videoURL;
+      };
+    }
+
+    capture() {
+      return new Promise((resolve, reject) => {
+        const dataURL = this.camera.canvas1.toDataURL('png');
+
+        this.display = new PhotoResultDisplay(this, dataURL);
+
+        setTimeout(() => {
+          resolve();
+        }, 5000)
+      });
+    }
+    start() {
+      this.media_recorder.start();
+    }
+
+    stop() {
+      this.media_recorder.stop();
+    }
+  }
+  class Camera {
+    constructor(window_controller) {
+      this.app_window = new Window(window_controller, this, "Camera", {
+        w: 100,
+        h: 100
+      });
+
+      this.FILTERS = [
+          {
+            name: "Webcam",
+            effect: () => {
+               // this.tint_effect(); 
+            }
+          },
+          {
+            name: "Studio",
+            effect: () => {
+               this.sharpen_effect(); 
+            }
+          },
+          {
+            name: "Tint",
+            effect: () => {
+               this.tint_effect(); 
+            }
+          },
+          {
+            name: "Mirror",
+            effect: () => {
+               this.mirror_effect(); 
+            }
+          }
+        ]
+
+      this.changing_filter = false;
+      this.filter = 0;
+
+      this.app_window.on_close = () => {
+        if(this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop())
+
+          this.v.srcObject = null;
+        }
+      }
+    }
+
+    set_interface_text(text, time) {
+      const textElement = this.app_window.content.querySelector(".Camera__interface_text");
+      
+      if(this.interface_text) {
+        clearTimeout(this.interface_text_timeout);
+      } else {
+        textElement.classList.add("show")
+      }
+
+      textElement.innerText = text;
+      this.interface_text = text;
+
+      this.interface_text_timeout = setTimeout(() => {
+        textElement.classList.remove("show")
+        this.interface_text = null;
+      }, time)
+    }
+
+    load() {
+      this.app_window.content.innerHTML = `
+        <div class="Camera__result_display" hidden="true"></div>
+        <div class="Camera__interface">
+          <div class="Camera__interface_text">
+          
+          </div>
+          <div class="Camera__interface_filter">
+            <div class="Camera__interface_filter_scrubber">
+            </div>
+            </svg>
+          </div>
+          <div class="Camera__interface_bottom">
+            
+          </div>
+        </div>
+        <video class="Camera__video_feed" autoplay="true"></video>
+        <div class="Camera__canvas_container">
+          <!-- ****  HTML Feature submission **** -->
+          <canvas class="Camera__canvas" width="640" height="480"></canvas>
+        </div>
+      `;
+
+      this.v = this.app_window.content.querySelector(".Camera__video_feed")
+      this.canvas1 = this.app_window.content.querySelector(".Camera__canvas")
+      this.ctx1 = this.canvas1.getContext("2d")
+
+      const constraints = {
+        audio: false,
+        video: {}
+      }
+
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          this.stream = stream;
+          this.v.srcObject = stream;
+        })
+
+      this.v.addEventListener("play", () => {
+        this.width = this.v.videoWidth;
+        this.height = this.v.videoHeight;
+
+        this.app_window.aspect_ratio = this.width / this.height;
+
+        const maxResizeHeight = this.app_window.controller.get_max_y() * .8;
+        const maxResizeWidth = this.app_window.controller.get_max_x() * .8;
+
+        this.app_window.w = Math.min(maxResizeWidth, (maxResizeHeight - 40) * this.app_window.aspect_ratio);
+        this.app_window.h = Math.min(maxResizeHeight, (maxResizeWidth / this.app_window.aspect_ratio) + 40) - 40;
+
+        const center = this.app_window.controller.get_desktop_center();
+
+        this.app_window.x = center.x - this.app_window.w / 2;
+        this.app_window.y = center.y - (this.app_window.h + 40) / 2;
+
+        this.app_window.update_dimensions();
+
+        this.app_window.require_aspect_ratio = true;
+
+        this.canvas1.width = this.width;
+
+        this.timer = setInterval(() => {
+          this.tick()
+        }, 1000 / 60);
+      })
+
+      this.loadInterface()
+    }
+
+    loadInterface() {
+      const interface_element = this.app_window.content.querySelector(".Camera__interface")
+
+      let observedState = this.app_window.content.getAttribute("data-camera-state");
+
+      let realState = "view"
+
+      const filterLine = interface_element.querySelector(".Camera__interface_filter")
+      const scrubber = interface_element.querySelector(".Camera__interface_filter_scrubber")
+
+      const changeFilter = (mouseY, _usableScrubbingHeight, _scrubTop) => {
+        const useableScrubbingHeight = _usableScrubbingHeight || filterLine.getBoundingClientRect().height * .8;
+        const scrubTop = _scrubTop || filterLine.getBoundingClientRect().y;
+
+        const stepHeight = useableScrubbingHeight / this.FILTERS.length;
+
+        const steps = Math.min(Math.max(0, Math.round((mouseY - scrubTop) / stepHeight)), this.FILTERS.length - 1);
+
+        set_style_var(scrubber, "y", steps * 80 / this.FILTERS.length + "%");
+
+        if(steps !== this.filter) {
+          this.filter = steps;
+          this.set_interface_text(this.FILTERS[steps].name, 1000)
+        }
+      }
+      scrubber.addEventListener("mousedown", (eo) => {
+        eo.preventDefault();
+        this.changing_filter = true;
+        const useableScrubbingHeight = filterLine.getBoundingClientRect().height * .8;
+        const scrubTop = filterLine.getBoundingClientRect().y;
+        
+        const onMouseMove = (e) => {
+          changeFilter(e.clientY, useableScrubbingHeight, scrubTop)
+        }
+
+        const onMouseUp = () => {
+          this.changing_filter = false;
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+        }
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      })
+
+      filterLine.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        changeFilter(e.clientY);
+      });
+      
+      if (this.recorder) {
+        realState = this.recorder.type;
+        // photo (runs for <1s), video, collage
+      }
+
+      if (observedState !== realState || true) {
+        if (observedState === "photo" || realState === "photo") { // assume other state is view + no UI change other than opacity is needed
+        } if(true) {
+          const bottom = this.app_window.content.querySelector(".Camera__interface_bottom")
+          bottom.innerHTML = "";
+
+          if (realState === "video") {
+            const stopButton = document.createElement("div")
+            stopButton.className = "Camera__stop_button Camera__button"
+            stopButton.innerHTML = "<u-icon name=\"camera-stop-video\" width=\"48\" height=\"48\" ></u-icon>"
+            stopButton.addEventListener("click", () => {
+              this.recorder?.stop();
+              this.recorder = null;
+              this.loadInterface();
+            })
+
+            bottom.appendChild(stopButton)
+            interface_element.setAttribute("data-camera-state", "video")
+          } else {
+            const videoButton = document.createElement("div")
+            videoButton.className = "Camera__video_button Camera__button"
+              videoButton.innerHTML = "<u-icon name=\"camera-start-video\" width=\"36\" height=\"36\"></u-icon>"
+            videoButton.addEventListener("click", () => {
+              this.recorder = new CameraRecorder(this, "video");
+              this.recorder.prepare();
+              this.recorder.start();
+              this.loadInterface();
+            })
+
+            bottom.appendChild(videoButton)
+
+            const shutterButton = document.createElement("div")
+            shutterButton.className = "Camera__shutter_button Camera__button"
+            shutterButton.innerHTML = "<u-icon name=\"camera-capture\" width=\"48\" height=\"48\"></u-icon>"
+            
+            shutterButton.addEventListener("click", () => {
+              this.recorder = new CameraRecorder(this, "photo");
+              this.recorder.capture().then(() => {
+                this.recorder = null;
+                this.loadInterface();
+              })
+              this.loadInterface();
+
+
+            })
+
+            bottom.appendChild(shutterButton);
+
+            const paddingButton = document.createElement("span")
+            paddingButton.style.width = "36px";
+            bottom.appendChild(paddingButton);
+          }
+        }
+      }
+
+      this.app_window.content.setAttribute("data-camera-state", realState)
+    }
+
+    tick(overwrite_changing_filter) {
+      set_style_var(this.canvas1, "scale", (this.app_window.w + 4) / this.width);
+
+      // if(this.changing_filter && !overwrite_changing_filter) return;
+      
+      this.ctx1.drawImage(this.v, 0, 0, this.width, this.height);
+
+      this.FILTERS[this.filter].effect();
+    }
+
+    tint_effect() {
+      const frame = this.ctx1.getImageData(0, 0, this.width, this.height);
+      const data = frame.data;
+
+      const sec = Date.now() / 500 * Math.PI / 12
+
+      const r = Math.sin(sec) * 40
+      const b = Math.cos(sec) * 40
+      
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          const i = (y * this.width + x) * 4
+          const luminance = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2])
+          data[i] = luminance + r
+          data[i + 1] = luminance
+          data[i + 2] = luminance + b
+        }
+      }
+
+      this.ctx1.putImageData(frame, 0, 0)
+    }
+
+    // NOT MY CODE
+    sharpen_effect() {
+      // MOST OF THIS CODE IS FROM CHATGPT
+      function sharpenImage(imageData, data) {
+        const width = imageData.width;
+
+
+        const weights = new Array(9).fill(-0.15); // Sharpening convolution matrix
+        weights[4] = 1 - weights[0] * 8
+        for (let i = 0; i < data.length; i += 4) {
+          const r = weightedSum(i, data, weights, width);
+          const g = weightedSum(i + 1, data, weights, width);
+          const b = weightedSum(i + 2, data, weights, width);
+
+          data[i] = clamp(r);
+          data[i + 1] = clamp(g);
+          data[i + 2] = clamp(b);
+        }
+      }
+
+      function weightedSum(startIndex, data, weights, width) {
+        const len = weights.length;
+        let sum = 0;
+
+        for (let i = 0; i < len; i++) {
+          const x = (startIndex % (width * 4)) / 4 + Math.floor(i % 3) - 1;
+          const y = Math.floor(startIndex / (width * 4)) + Math.floor(i / 3) - 1;
+
+          const pixelIndex = (y * width + x) * 4;
+          const weight = weights[i];
+
+          sum += data[pixelIndex] * weight;
+        }
+
+        return sum;
+      }
+
+      function clamp(value) {
+        return Math.min(255, Math.max(0, value));
+      }
+
+      function performFourierTransform(imageData, data) {
+        const cutoffFrequency = 16;
+        const width = imageData.width;
+        const height = imageData.height;
+        const center_x = width / 2;
+        const center_y = height / 2;
+
+        for (let i = 0; i < width; i++) {
+          for (let j = 0; j < height; j++) {
+            const index = (i + j * width) * 4;
+            const frequency = Math.sqrt((i - center_x) ** 2 + (j - center_y) ** 2);
+
+            if (frequency > cutoffFrequency) {
+              data[index] = data[index + 1] = data[index + 2] = 255; // Remove high-frequency components
+            }
+          }
+        }
+      }
+
+      function brighten(canvas, ctx) {
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = frame.data;
+
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            const i = (y * canvas.width + x) * 4
+
+            data[i] = data[i] + 40;
+            data[i + 1] = data[i + 1] + 40;
+            data[i + 2] = data[i + 2] + 40;
+
+            const luminance = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+            data[i] = data[i] * 1.20 + luminance * -0.08;
+            data[i + 1] = data[i + 1] * 1.20 + luminance * -0.08;
+            data[i + 2] = data[i + 2] * 1.20 + luminance * -0.08;
+
+            // const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
+            // const avgColor = (data[i] + data[i + 1] + data[i + 2]) / 3;
+
+            // data[i] =  (avgColor - data[i]) * 0.3 + data[i] * 0.8;
+            // data[i + 1] =  (avgColor - data[i + 1]) * 0.3 + data[i + 1] * 0.8;
+            // data[i + 2] =  (avgColor - data[i + 2]) * 0.3 + data[i + 2] * 0.8;
+          }
+        }
+
+        ctx.putImageData(frame, 0, 0)
+      }
+
+      const frame = this.ctx1.getImageData(0, 0, this.width, this.height);
+      const data = frame.data;
+
+      sharpenImage(frame, data)
+
+      // performFourierTransform(frame, data)
+
+      this.ctx1.putImageData(frame, 0, 0)
+
+
+      brighten(this.canvas1, this.ctx1)
+    }
+
+    mirror_effect() {
+      const frame = this.ctx1.getImageData(0, 0, this.width, this.height);
+      const data = frame.data;
+
+      for (let y = 0; y < this.height * 2; y++) {
+        for (let x = 0; x < this.width; x++) {
+          const i = (y * this.width + x) * 4
+          const i2 = ((y + 1) * this.width - x) * 4
+
+          data[i] = data[i2]
+          data[i + 1] = data[i2 + 1]
+          data[i + 2] = data[i2 + 2]
+        }
+      }
+
+      this.ctx1.putImageData(frame, 0, 0)
+    }
+
+  }
+
+</script>
+<script>
+  class Notepad {
+    constructor(window_controller, file_name) {
+      this.app_window = new Window(window_controller, this, file_name || "Untitled Note*");
+      this.APP_NAME = "Notepad";
+      this._file_name = file_name
+      this._saved = !!file_name
+    }
+
+    get file_name() {
+      return this._file_name;
+    }
+
+    set file_name(value) {
+      this.app_window.title = (value || "Untitled Note") + (this.saved ? "" : "*");
+      this._file_name = value;
+    }
+
+    get saved() {
+      return this._saved;
+    }
+
+    set saved(value) {
+      if (this.notepad) {
+        if (value) {
+          this.notepad.classList.add("saved");
+
+        } else {
+          this.notepad.classList.remove("saved");
+        }
+      }
+      this.app_window.title = (this.file_name || "Untitled Note") + (value ? "" : "*");
+      this._saved = value;
+    }
+
+    load() {
+      this.app_window.content.innerHTML = `
+        <div class="Notepad">
+          <div class="Notepad__controls">
+            <span></span>
+            <div class="Notepad__buttons">
+              <button action="bold">
+                <u-icon name="bold" width="18"></u-icon>
+              </button>
+              <button action="italic">
+                <u-icon name="italic" width="18"></u-icon>
+              </button>
+              <button action="underline">
+                <u-icon name="underline" width="18"></u-icon>
+              </button>
+              <button action="header">
+                <u-icon name="header" width="20"></u-icon>
+              </button>
+              <button action="save">
+                <span>Save</span><u-icon name="save" width="20"></u-icon>
+              </button>
+              <button action="saved">
+                <span>Saved</span><u-icon name="saved" width="20"></u-icon>
+              </button>
+            </div>
+          </div>
+          <!-- ****  HTML Feature submission **** -->
+          <!-- ****  (I was going to use a form element, but I need to allow for multi line and multi formatting, so this implements the same functionality as input[type="text"] but with more features) **** -->
+          <div class="Notepad__input" contenteditable>
+            <p>  </p>
+          </div>
+        </div>
+      `;
+
+      this.notepad = this.app_window.content.querySelector(".Notepad");
+
+      this.notepad_input = this.app_window.content.querySelector(".Notepad__input");
+
+      const updateHighlightedLine = () => {
+        const selection = window.getSelection();
+        let base = selection.baseNode;
+
+        let currentNode = base;
+
+        while (currentNode.tagName !== "DIV" && currentNode.tagName !== "P" && currentNode.tagName !== "LI") {
+          currentNode = currentNode.parentElement;
+        }
+
+        const currentlyHighlighted = this.notepad_input.querySelectorAll(".highlight");
+
+        if (currentlyHighlighted.length !== 1 || (currentlyHighlighted.length === 1 && currentlyHighlighted[0] !== currentNode)) {
+          currentlyHighlighted.forEach((h) => {
+            h.classList.remove("highlight")
+          })
+          currentNode.classList.add("highlight")
+        }
+      }
+
+      this.notepad_input.addEventListener("keydown", (e) => {
+        const selection = window.getSelection();
+        let base = selection.baseNode;
+
+        let currentNode = base;
+
+        while (currentNode.tagName !== "DIV" && currentNode.tagName !== "P" && currentNode.tagName !== "LI") {
+          currentNode = currentNode.parentElement;
+        }
+
+
+        if (this.notepad_input.contains(base) && (e.code === "Space")) {
+          const baseText = base.textContent;
+          const before = baseText.substring(0, selection.baseOffset);
+          const after = baseText.substring(selection.baseOffset);
+
+          if (before === "-") {
+            e.preventDefault();
+
+            const newNode = document.createElement("ul");
+            const newNodeInner = document.createElement("li");
+            newNode.appendChild(newNodeInner);
+
+            newNodeInner.innerText = after;
+
+            currentNode.outerHTML = newNode.outerHTML;
+          }
+
+          if ((/^[0-9]+[)\\.]$/).test(before)) {
+            e.preventDefault();
+
+            const newNode = document.createElement("ol");
+            const newNodeInner = document.createElement("li");
+            newNode.appendChild(newNodeInner);
+
+            newNodeInner.innerText = after;
+
+            currentNode.outerHTML = newNode.outerHTML;
+          }
+        }
+
+        setTimeout(() => {
+          updateHighlightedLine();
+        }, 0)
+      })
+
+      this.notepad_input.addEventListener("click", updateHighlightedLine)
+
+      this.notepad_input.addEventListener("input", (e) => {
+        this.saved = false;
+      })
+
+      const config = {attributes: false, childList: true, subtree: true};
+
+      const callback = (mutationList, observer) => {
+        if (this.notepad_input.innerHTML.trim() === "") {
+          this.notepad_input.innerHTML = `
+            <p></p>
+          `
+        }
+        for (const mutation of mutationList) {
+          if (mutation.type === "childList") {
+            for (const node of mutation.addedNodes) {
+              if (node.tagName === "SPAN") {
+                node.style = "";
+              }
+            }
+          }
+        }
+      };
+
+      //<!-- ****  JavaScript Feature submission **** -->
+      const observer = new MutationObserver(callback);
+      observer.observe(this.notepad_input, config);
+
+
+      this.notepad_input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        //<!-- ****  JavaScript Feature submission **** -->
+        var text = e.clipboardData.getData("text/plain");
+        document.execCommand("insertHTML", false, text);
+      });
+
+      const bold = this.app_window.content.querySelector(".Notepad__buttons button[action=\"bold\"]");
+      const italic = this.app_window.content.querySelector(".Notepad__buttons button[action=\"italic\"]");
+      const underline = this.app_window.content.querySelector(".Notepad__buttons button[action=\"underline\"]");
+      const header = this.app_window.content.querySelector(".Notepad__buttons button[action=\"header\"]");
+      const save = this.app_window.content.querySelector(".Notepad__buttons button[action=\"save\"]");
+
+      bold.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+
+        e.preventDefault();
+
+        document.execCommand("bold");
+      });
+
+      italic.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+
+        e.preventDefault();
+
+        document.execCommand("italic")
+      });
+
+      underline.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+
+        e.preventDefault();
+
+        document.execCommand("underline")
+      });
+
+      header.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+
+        e.preventDefault();
+
+        //<!-- ****  JavaScript Feature submission **** -->
+        const selection = window.getSelection();
+        const base = selection.baseNode;
+
+        if (this.notepad_input.contains(base)) {
+          let currentNode = base;
+
+          while (currentNode.tagName !== "DIV" && currentNode.tagName !== "P" && currentNode.tagName !== "LI") {
+            currentNode = currentNode.parentElement;
+          }
+
+          if (currentNode.classList.contains("h1")) {
+            currentNode.classList.remove("h1");
+          } else {
+            currentNode.classList.add("h1");
+          }
+
+        }
+      });
+
+      save.addEventListener("click", (e) => {
+        if (e.button !== 0) return;
+
+        const md = this.convert_to_markdown(this.notepad_input).trim()
+
+        //<!-- ****  JavaScript Feature submission **** -->
+        this.file_name = this.file_name || prompt("Enter a name for your file:")
+
+        if(!this.file_name.endsWith(".txt")) {
+          this.file_name += ".txt";
+        }
+        os.addFile(this.file_name, md)
+
+        this.saved = true;
+      });
+
+      if (this.file_name) {
+        os.getFile(this.file_name).then((file) => {
+          if (file) {
+            this.notepad_input.innerHTML = this.convert_from_markdown(file.data);
+          }
+        })
+      }
+
+    }
+
+    convert_to_markdown(node) {
+
+      let md = "";
+      for (const c of node.childNodes) {
+
+        if (c.tagName == null) {
+          md += c.textContent
+        }
+        if (c.tagName === "P" || c.tagName === "DIV") {
+          md += `${this.convert_to_markdown(c)}\n`
+        }
+        if (c.tagName === "OL") {
+          let ct = 1
+          for (const gc of c.childNodes) {
+            md += `${ct}) ${this.convert_to_markdown(gc)}\n`
+            ct++
+          }
+        }
+        if (c.tagName === "UL") {
+          for (const gc of c.childNodes) {
+            md += `- ${this.convert_to_markdown(gc)}\n`
+          }
+        }
+        if (c.tagName === "B") {
+          md += "**" + this.convert_to_markdown(c) + "**"
+        }
+        if (c.tagName === "I") {
+          md += "*" + this.convert_to_markdown(c) + "*"
+        }
+        if (c.tagName === "U") {
+          md += "__" + this.convert_to_markdown(c) + "__"
+        }
+      }
+
+      return md;
+    }
+
+    convert_from_markdown(md, inline) {
+      const el = document.createElement("div")
+      const lines = md.split("\n");
+
+      let olist = null;
+      let ulist = null;
+      for (const line of lines) {
+
+        if ((/^[0-9]+[)\\.]/).test(line)) {
+          if (olist) {
+            const listItem = document.createElement("li");
+
+            listItem.innerHTML = this.convert_from_markdown(line.substring(line.indexOf(" ")), true);
+            olist.appendChild(listItem);
+          } else {
+            olist = document.createElement("ol");
+            const listItem = document.createElement("li");
+            listItem.innerHTML = this.convert_from_markdown(line.substring(line.indexOf(" ")), true);
+            olist.appendChild(listItem);
+            el.appendChild(olist);
+          }
+          continue;
+        } else {
+          olist = null;
+        }
+
+        if (line.startsWith("- ")) {
+          if (ulist) {
+            const listItem = document.createElement("li");
+            listItem.innerHTML = this.convert_from_markdown(line.substring(line.indexOf(" ")), true);
+            ulist.appendChild(listItem);
+          } else {
+            ulist = document.createElement("ul");
+            const listItem = document.createElement("li");
+            listItem.innerHTML = this.convert_from_markdown(line.substring(line.indexOf(" ")), true);
+            ulist.appendChild(listItem);
+            el.appendChild(ulist);
+          }
+          continue;
+        } else {
+          ulist = null;
+        }
+
+        let bold = false;
+        let italic = false;
+        let underline = false;
+
+        let lineHtmlRaw = ""
+
+        for (let i = 0; i < line.length; i++) {
+          const c1 = line[i];
+          const c2 = i + 1 < line.length ? line[i + 1] : null;
+          const c3 = i + 2 < line.length ? line[i + 2] : null;
+
+          if (c1 === "*") {
+            if (c2 === "*") {
+              if (c3 === "*") {
+                if (italic) {
+                  lineHtmlRaw += "</i>";
+                  italic = false;
+                } else {
+                  lineHtmlRaw += "<i>";
+                  italic = true;
+                }
+                if (bold) {
+                  lineHtmlRaw += "</b>";
+                  bold = false;
+                } else {
+                  lineHtmlRaw += "<b>";
+                  bold = true;
+                }
+                i += 2;
+              } else {
+                if (bold) {
+                  lineHtmlRaw += "</b>";
+                  bold = false;
+                } else {
+                  lineHtmlRaw += "<b>";
+                  bold = true;
+                }
+                i += 1;
+              }
+            } else {
+              if (italic) {
+                lineHtmlRaw += "</i>";
+                italic = false;
+              } else {
+                lineHtmlRaw += "<i>";
+                italic = true;
+              }
+            }
+          }
+
+          else if (c1 === "_" && c2 === "_") {
+            if (underline) {
+              lineHtmlRaw += "</u>";
+              underline = false;
+            } else {
+              lineHtmlRaw += "<u>";
+              underline = true;
+            }
+            i += 1;
+          }
+
+          else if (c1 === " ") {
+            lineHtmlRaw += " "
+          } else {
+            lineHtmlRaw += HtmlSanitizer.SanitizeHtml(c1)
+          }
+        }
+
+        if (inline) {
+          el.innerHTML += `<span>${lineHtmlRaw}</span>`
+        } else {
+
+          el.innerHTML += `<p>${lineHtmlRaw}</p>`
+        }
+      }
+
+      return el.innerHTML;
+    }
+  }
+
+
+</script>
+<script>
+  class Photos {
+  constructor(window_controller, file_name) {
+    this.app_window = new Window(window_controller, this, file_name);
+    this.APP_NAME = "Photos";
+    this.file_name = file_name
+    this._saved = !!file_name
+  }
+
+  load() {
+    this.app_window.content.innerHTML = `
+      <div class="Photo shrink">
+        <div class="Photo__buttons">
+          <button action="shrink">
+            <u-icon name="shrink-image" width="18"></u-icon>
+          </button>
+          <button action="stretch">
+            <u-icon name="stretch-image" width="18"></u-icon>
+          </button>
+          <button action="spread">
+            <u-icon name="spread-image" width="18"></u-icon>
+          </button>
+          <button action="lock-window">
+            <u-icon name="lock-window" width="18"></u-icon>
+            <p>Lock Window</p>
+          </button>
+          <button action="unlock-window">
+            <u-icon name="lock-window" width="18"></u-icon>
+            <p>Window Locked</p>
+          </button>
+        </div>
+        <img class="Photo__image">
+        </img>
+      </div>
+    `;
+
+    this.photo_frame = this.app_window.content.querySelector(".Photo");
+    this.photo_image = this.app_window.content.querySelector(".Photo__image");
+
+    if (this.file_name) {
+      os.getFile(this.file_name).then((file) => {
+        if (file) {
+          this.photo_image.src = file.data;
+        }
+      })
+    }
+
+    const updateAspectRatio = (lock) => {
+      const aspect_ratio = this.photo_image.naturalWidth / this.photo_image.naturalHeight;
+      this.app_window.aspect_ratio = aspect_ratio;
+      this.app_window.require_aspect_ratio = lock;
+
+      const potentialNewWidth = (this.app_window.h * aspect_ratio);
+      const potentialNewHeight = (this.app_window.w / aspect_ratio);
+
+      if(potentialNewWidth > this.app_window.w) {
+        this.app_window.h = potentialNewHeight;
+      } else {
+        this.app_window.w = potentialNewWidth;
+      }
+      
+      this.app_window.update_dimensions();
+    }
+    this.photo_frame.querySelector("button[action=\"shrink\"]").addEventListener("click", (e) => {
+      this.photo_frame.classList.add("shrink");
+      this.photo_frame.classList.remove("stretch");
+      this.photo_frame.classList.remove("spread");
+      this.photo_frame.classList.remove("locked");
+      updateAspectRatio(false);
+    });
+
+    this.photo_frame.querySelector("button[action=\"unlock-window\"]").addEventListener("click", (e) => {
+      this.photo_frame.classList.add("shrink");
+      this.photo_frame.classList.remove("stretch");
+      this.photo_frame.classList.remove("spread");
+      this.photo_frame.classList.remove("locked");
+      updateAspectRatio(false);
+    });
+
+    this.photo_frame.querySelector("button[action=\"stretch\"]").addEventListener("click", (e) => {
+      this.photo_frame.classList.remove("shrink");
+      this.photo_frame.classList.add("stretch");
+      this.photo_frame.classList.remove("spread");
+      this.photo_frame.classList.remove("locked");
+      updateAspectRatio(false);
+    });
+
+    this.photo_frame.querySelector("button[action=\"spread\"]").addEventListener("click", (e) => {
+      this.photo_frame.classList.remove("shrink");
+      this.photo_frame.classList.remove("stretch");
+      this.photo_frame.classList.add("spread");
+      this.photo_frame.classList.remove("locked");
+      updateAspectRatio(false);
+    });
+
+    this.photo_frame.querySelector("button[action=\"lock-window\"]").addEventListener("click", (e) => {
+      this.photo_frame.classList.remove("shrink");
+      this.photo_frame.classList.remove("stretch");
+      this.photo_frame.classList.remove("spread");
+      this.photo_frame.classList.remove("locked");
+      this.photo_frame.classList.add("locked");
+      updateAspectRatio(true);
+    });
+  }
+  }
+</script>
+  <script>
+  class Observable { // from ChatGPT
+    constructor() {
+      this._listeners = new Set();
+    }
+
+    subscribe(callback) {
+      this._listeners.add(callback);
+    }
+
+    unsubscribe(callback) {
+      this._listeners.delete(callback);
+    }
+
+    notify() {
+      this._listeners.forEach(callback => callback());
+    }
+  }
+
+  class OS {
+    constructor() {
+      this._db = null;
+      this._onReady = new Observable();
+      this._onUpdateFiles = new Observable();
+    }
+
+    start() {
+      this.prepareDb();
+    }
+
+    checkReady() {
+      if (this._db) {
+        this._onReady.notify();
+      }
+    }
+
+    prepareDb() {
+      //<!-- ****  JavaScript Feature submission **** -->
+      //<!-- ****  (indexeddb) **** -->
+      if (!('indexedDB' in window)) {
+        console.log("This browser doesn't support IndexedDB");
+        return;
+      }
+
+      const dbPromise = window.indexedDB.open("os", 4);
+
+      dbPromise.onupgradeneeded = (e) => {
+        if (e.oldVersion < 3) {
+          const objectStore = e.target.result.createObjectStore("fs", {keyPath: "name"});
+        }
+        if (e.oldVersion < 4) {
+          e.target.result.createObjectStore("fsTimeTable", {keyPath: "name"});
+        }
+      }
+
+      dbPromise.onsuccess = (db) => {
+        this._db = db.target.result;
+
+        this.checkReady();
+      };
+    }
+
+    addFile(name, data) {
+      return new Promise((resolve, reject) => {
+        console.log("1");
+        const transaction = this._db.transaction("fs", "readwrite");
+        console.log("2");
+        const store = transaction.objectStore("fs");
+        console.log("3");
+        const request = store.put({name, data});
+        console.log("4");
+        request.onsuccess = (c) => {
+          const transaction2 = this._db.transaction("fsTimeTable", "readwrite");
+          const store2 = transaction2.objectStore("fsTimeTable");
+          const request2 = store2.put({name, time: Date.now()});
+
+          request2.onsuccess = (c) => {
+            this._onUpdateFiles.notify();
+            resolve()
+          }
+        }
+      });
+    }
+
+    getFile(name) {
+      return new Promise((resolve, reject) => {
+        const transaction = this._db.transaction("fs", "readonly");
+        const store = transaction.objectStore("fs");
+        const request = store.get(name);
+
+        request.onsuccess = (c) => {
+          resolve(c.target.result)
+        }
+      });
+    }
+
+    fileExists(name) {
+      return new Promise((resolve, reject) => {
+        const transaction = this._db.transaction("fsTimeTable", "readonly");
+        const store = transaction.objectStore("fsTimeTable");
+        const request = store.get(name);
+
+        request.onsuccess = (c) => {
+          resolve(!!c.target.result)
+        }
+      });
+    }
+    
+    getFileList() {
+      return new Promise((resolve, reject) => {
+        const transaction = this._db.transaction("fsTimeTable", "readonly");
+        const store = transaction.objectStore("fsTimeTable");
+        const request = store.getAll();
+
+        request.onsuccess = (c) => {
+          resolve(c.target.result)
+        }
+      });
+    }
+
+    createUniqueFileName(name, extension) {
+      return new Promise(async(resolve, reject) => {
+        let index = 0;
+
+        while(true) {
+          const fileName = `${name}${index === 0 ? "" : (index)}.${extension}`;
+          const exists = await this.fileExists(fileName);
+          if(!exists) {
+            resolve(fileName);
+          } else index++;
+        }
+      });
+    } 
+    set onReady(callback) {
+      this._onReady.subscribe(callback)
+    }
+
+    set onUpdateFiles(callback) {
+      this._onUpdateFiles.subscribe(callback)
+    }
+
+
+  }
+
+  const os = new OS();
+
+  const APP_DIRECTORY = [
+    {
+      name: "Notepad",
+      file_types: ["txt"],
+      icon: "file-text",
+      open: (fileName, controller) => {
+        for (const window of controller.windows) {
+          if (window.you.APP_NAME === "Notepad" && window.you.file_name === fileName) {
+            window.focus();
+            return
+          }
+        }
+
+        const newNotepad = new Notepad(controller, fileName);
+
+        newNotepad.load();
+      },
+      download: (fileName) => {
+          os.getFile(fileName).then((f) => {
+            if(f && f.data) {
+
+              const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(f.data));
+                element.setAttribute('download', fileName);
+
+                element.style.display = 'none';
+                document.body.appendChild(element);
+
+                element.click();
+
+                document.body.removeChild(element);
+
+            }
+          });
+      }
+    },
+    {
+      name: "Camera",
+      file_types: [""],
+      icon: "camera",
+      open: (fileName, controller) => {
+        for (const window of controller.windows) {
+          if (window.you.APP_NAME === "Camera") {
+            window.focus();
+            return
+          }
+        }
+
+        const newCamera = new Camera(controller);
+
+        newCamera.load();
+      }
+    },
+    {
+      name: "Photos",
+      file_types: ["png"],
+      icon: "file-image",
+      open: (fileName, controller) => {
+        for (const window of controller.windows) {
+          if (window.you.APP_NAME === "Photos" && window.you.file_name === fileName) {
+            window.focus();
+            return
+          }
+        }
+
+        if(!fileName) {
+          for (const window of controller.windows) {
+            if (window.you.APP_NAME === "Camera") {
+              window.focus();
+              return
+            }
+          }
+
+          const newCamera = new Camera(controller);
+
+          newCamera.load();
+        } else {
+          
+          const newPhotos = new Photos(controller, fileName);
+  
+          newPhotos.load();
+        }
+
+      },
+      download: (fileName) => {
+        os.getFile(fileName).then((f) => {
+          if(f && f.data) {
+
+            const element = document.createElement('a');
+              element.setAttribute('href', f.data);
+              element.setAttribute('download', fileName);
+
+              element.style.display = 'none';
+              document.body.appendChild(element);
+
+              element.click();
+
+              document.body.removeChild(element);
+
+          }
+        });
+      }
+    },
+  ]
+
+  class WindowController {
+    constructor() {
+      this.desktop = $("#desktop")
+      this.taskbar = $("#taskbar")
+      this.taskbar_apps = $("#taskbar_apps")
+      this.windows = []
+      this.focusStack = [];
+      os.onUpdateFiles = () => {
+        this.organize_file_list();
+      };
+    }
+
+    get_desktop_center() {
+      const rect = this.desktop.getBoundingClientRect();
+
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      }
+    }
+
+    get_max_y() {
+      const rect = this.desktop.getBoundingClientRect();
+      return rect.height;
+    }
+
+    get_max_x() {
+      const rect = this.desktop.getBoundingClientRect();
+      return rect.width;
+    }
+
+    bind_window(window) {
+      this.windows.push(window)
+      window.set_id(this.windows.length - 1)
+    }
+
+    remove_window(index) {
+      const focused = this.focusStack[this.focusStack.length - 1] === index;
+      this.focusStack = this.focusStack.filter((idx) => idx !== index);
+      if (focused && this.focusStack.length > 0) {
+        this.windows[this.focusStack[this.focusStack.length - 1]].focus()
+      }
+
+      this.windows.splice(index, 1)
+    }
+
+    organize_file_list() {
+      const fileWidth = 80;
+      const tileGap = 20;
+      const tileWidth = fileWidth + tileGap;
+      const tilePercentX = tileWidth / this.get_max_x();
+      const tilePercentY = tileWidth / this.get_max_y();
+
+      document.querySelectorAll(".file").forEach((e) => e.remove());
+
+      os.getFileList().then((list) => {
+        const sorted = list.sort((a, b) => {
+          return a.time - b.time;
+        }).map((item) => item.name);
+
+        for (let i = 0; i < sorted.length; i++) {
+          const myPercentXRaw = (((i * tilePercentX) + (tileGap / 2 / this.get_max_x()))* 100)
+          const myPercentX = myPercentXRaw % (100 - tilePercentX*100);
+          const myPercentY = (Math.floor(myPercentXRaw / (100 - tilePercentX*100)) * tilePercentY + (tileGap / 2 / this.get_max_y())) * 100;
+          
+          //<!-- ****  HTML Feature submission **** -->
+          // <!-- ****  (draggable is an HTML feature, I'm just implementing it with javascript) **** -->
+          const tile = document.createElement("div");
+          tile.draggable = "true";
+
+          const fileName = sorted[i];
+
+          tile.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("fileName", sorted[i])
+          });
+                                
+          let icon = "";
+
+          const extension = fileName.split(".").pop();
+
+          for (const app of APP_DIRECTORY) {
+            if (app.file_types.includes(extension)) {
+              tile.className = `file ${app.icon}`
+              icon = `<u-icon name="${app.icon}"></u-icon>`
+            }
+          }
+
+          set_style_var(tile, "pos-x", `${myPercentX}%`);
+          set_style_var(tile, "pos-y", `${myPercentY}%`);
+
+          tile.innerHTML = `<div>${icon}</div><p>${sorted[i]}</p>`;
+
+          tile.addEventListener("click", (e) => {
+            if (tile.classList.contains("focused")) {
+              tile.classList.remove("focused");
+
+
+              for (const app of APP_DIRECTORY) {
+                if (app.file_types.includes(extension)) {
+                  app.open(fileName, this);
+                  return;
+                }
+              }
+
+
+
+            } else {
+              tile.classList.add("focused");
+
+              const focusRemover = (e) => {
+                if (!tile.contains(e.target)) {
+                  tile.classList.remove("focused");
+                }
+                window.removeEventListener("click", focusRemover);
+              }
+              setTimeout(() => {
+                window.addEventListener("click", focusRemover);
+              }, 0)
+            }
+          })
+          this.desktop.append(tile)
+        }
+      })
+    }
+
+    organize_taskbar() {
+
+      for (const app of APP_DIRECTORY) {
+        const tile = document.createElement("div");
+        let icon = `<u-icon name="${app.icon}" width="24"></u-icon>`;
+        tile.className = `app-tile ${app.icon}`
+        tile.innerHTML = `<div>${icon}</div>`;
+
+        tile.onclick = (e) => {
+          app.open(null, this);
+        }
+        
+        this.taskbar_apps.appendChild(tile);
+      }
+
+
+
+
+    }
+  }
+
+  class Window extends Observable {
+    constructor(controller, you, title, dimensions) {
+      super();
+
+      const center = controller.get_desktop_center();
+
+      this.you = you;
+      this._controller = controller;
+      this._controller.bind_window(this)
+      this._title = title;
+      this._w = dimensions?.w || controller.get_max_x() * .8;
+      this._h = dimensions?.h || controller.get_max_y() * .8 - 40;
+      this._x = dimensions?.x || (center.x - this._w / 2);
+      this._y = dimensions?.y || (center.y - (this._h + 40) / 2);
+      this._aspect_ratio = 1;
+      this._require_aspect_ratio = false;
+
+      this._close_observer = new Observable();
+
+      this.open = true;
+
+      this.create_element();
+    }
+
+    close() {
+      this.open = false;
+
+      this._close_observer.notify();
+
+      this.frame.setAttribute("closing", true)
+
+      setTimeout(() => {
+        this.controller.remove_window(this.id)
+      }, 250);
+
+      setTimeout(() => {
+        this.frame.remove();
+      }, 500);
+    }
+
+    get on_close() {
+      return this._close_observer;
+    }
+
+    set on_close(callback) {
+      this._close_observer.subscribe(callback);
+    }
+
+    get x() {
+      return this._x;
+    }
+
+    set x(value) {
+      if (value !== this._x) {
+        this._x = value;
+        this.notify();
+      }
+    }
+
+    get y() {
+      return this._y;
+    }
+
+    set y(value) {
+      if (value !== this._y) {
+        this._y = value;
+        this.notify();
+      }
+    }
+
+    get w() {
+      return this._w;
+    }
+
+    set w(value) {
+      if (value !== this._w) {
+        this._w = value;
+        this.notify();
+      }
+    }
+
+    get h() {
+      return this._h;
+    }
+
+    set h(value) {
+      if (value !== this._h) {
+        this._h = value;
+        this.notify();
+      }
+    }
+
+    get aspect_ratio() {
+      return this._aspect_ratio;
+    }
+
+    set aspect_ratio(value) {
+      if (value !== this._aspect_ratio) {
+        this._aspect_ratio = value;
+        this.notify();
+      }
+    }
+
+    get require_aspect_ratio() {
+      return this._require_aspect_ratio;
+    }
+
+    set require_aspect_ratio(value) {
+      if (value !== this._require_aspect_ratio) {
+        this._require_aspect_ratio = value;
+        this.notify();
+      }
+    }
+
+    get controller() {
+      return this._controller;
+    }
+
+    set controller(value) {
+      if (value !== this._controller) {
+        this._controller = value;
+        this.notify();
+      }
+    }
+
+    get title() {
+      return this._title;
+    }
+
+    set title(value) {
+      if (value !== this._title) {
+        this._title = value;
+
+        if (this.title_element) {
+          this.title_element.innerText = value;
+        }
+
+        this.notify();
+      }
+    }
+
+
+
+    set_id(id) {
+      this.id = id;
+    }
+
+    update_dimensions() {
+      const top_height = 40;
+
+      set_style_var(this.frame, "pos-x", this.x + "px");
+      set_style_var(this.frame, "pos-y", this.y + "px");
+      set_style_var(this.frame, "width", this.w + "px");
+      set_style_var(this.frame, "height", this.h + top_height + "px");
+    }
+
+    get_drag_direction(e) {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      const rect = this.frame.getBoundingClientRect();
+
+      const left = e.clientX < rect.x + 4;
+      const header = e.clientY < rect.y + 40;
+      const right = e.clientX > rect.x + rect.width - 4;
+      const top = e.clientY < rect.y + 4;
+      const bottom = e.clientY > rect.y + rect.height - 4;
+
+      const vertical = top || bottom
+      const horizontal = left || right
+      const exists = vertical || horizontal
+
+      return {left, right, top, bottom, vertical, horizontal, exists, header}
+    }
+
+    focus() {
+      this.controller.focusStack.push(this.id);
+
+      document.querySelectorAll(".window_frame.focused").forEach((e) => e.classList.remove("focused"));
+
+      this.frame.classList.add("focused");
+    }
+    create_element() {
+      this.frame = document.createElement("div");
+      this.frame.className = "window_frame";
+
+      this.update_dimensions();
+
+      this.frame.setAttribute("window-id", this.id);
+      this.frame.setAttribute("opening", true);
+
+      setTimeout(() => {
+        if (this.open && document.contains(this.frame)) {
+          this.frame.setAttribute("opening", false);
+        }
+      }, 500);
+
+      this.frame.innerHTML = `
+        <div class="window_overlay">
+          <div class="window_safety_frame"></div>
+        </div>
+        <div class="window_header">
+          <div class="window_close_button"><u-icon name="close" width="18"></u-icon></div>
+          <div class="window_title">${this.title}</div>
+          <span></span>
+        </div>
+        <div class="window_content"></div>
+      `;
+
+      this.header = this.frame.querySelector(".window_header")
+      this.content = this.frame.querySelector(".window_content")
+      this.title_element = this.frame.querySelector(".window_title")
+      this.close_button = this.frame.querySelector(".window_close_button")
+
+      this.frame.addEventListener("mousemove", (e) => {
+        const {left, right, top, bottom, header} = this.get_drag_direction(e)
+
+        let cursor = "";
+
+        if (left && top) {
+          cursor = "nw-resize";
+        } else if (left && bottom) {
+          cursor = "sw-resize";
+        } else if (right && top) {
+          cursor = "ne-resize";
+        } else if (right && bottom) {
+          cursor = "se-resize";
+        } else if (left) {
+          cursor = "w-resize";
+        } else if (right) {
+          cursor = "e-resize";
+        } else if (top) {
+          cursor = "n-resize";
+        } else if (bottom) {
+          cursor = "s-resize";
+        } else if (header) {
+          cursor = "move";
+        }
+
+        set_style_var(this.frame, "cursor-type", cursor);
+      })
+
+      this.frame.addEventListener("mousedown", (e) => {
+        this.focus();
+
+        if (e.button !== 0) return;
+
+        if (this.close_button.contains(e.target)) {
+          this.close();
+          return;
+        }
+        const d = this.get_drag_direction(e);
+
+        if (d.left || d.top || d.right || d.bottom || d.header) {
+          e.preventDefault();
+        }
+        let originalWindowX = this.x;
+        let originalWindowY = this.y;
+        let originalWindowW = this.w;
+        let originalWindowH = this.h;
+
+        let originalMouseX = e.clientX;
+        let originalMouseY = e.clientY
+
+        const event1 = (e1) => {
+          const deltaX = e1.clientX - originalMouseX;
+          const deltaY = e1.clientY - originalMouseY;
+
+          const horizontalResize = () => {
+            const new_x = d.left ? originalWindowX + deltaX : originalWindowX;
+            const new_width = originalWindowW + (d.left ? -deltaX : deltaX);
+
+            if (Math.max(new_width, new_x + new_width) > this.controller.get_max_x() || new_x < 0) return;
+
+            // console.log(this.require_aspect_ratio);
+            if (this.require_aspect_ratio) {
+              const requiredHeight = (new_width / this.aspect_ratio) + 40;
+
+              if (requiredHeight <= this.controller.get_max_y()) {
+                const height_change = requiredHeight - originalWindowH - 40
+                const new_y = Math.max(originalWindowY - (height_change / 2), 0)
+                this.x = new_x;
+                this.w = new_width;
+                this.h = requiredHeight - 40;
+                this.y = new_y;
+              }
+            } else {
+              this.x = new_x;
+              this.w = new_width;
+            }
+          }
+
+          const verticalResize = () => {
+            const new_y = d.top ? originalWindowY + deltaY : originalWindowY;
+            const new_height = originalWindowH + (d.top ? -deltaY : deltaY) + 40;
+
+            if (Math.max(new_height, new_y + new_height) > this.controller.get_max_y() || new_y < 0) return;
+
+            if (this.require_aspect_ratio) {
+              const requiredWidth = (new_height - 40) * this.aspect_ratio;
+
+              if (requiredWidth <= this.controller.get_max_x()) {
+                const width_change = requiredWidth - originalWindowW
+                const new_x = Math.max(originalWindowX - (width_change / 2), 0)
+                this.x = new_x;
+                this.h = new_height - 40;
+                this.w = requiredWidth;
+                this.y = new_y;
+              }
+            } else {
+              this.y = new_y;
+              this.h = new_height - 40;
+            }
+          }
+
+          if (d.horizontal && d.vertical) {
+            if (this.require_aspect_ratio) {
+              horizontalResize()
+            } else {
+              horizontalResize()
+              verticalResize()
+            }
+          } else if (d.horizontal) {
+            horizontalResize()
+          } else if (d.vertical) {
+            verticalResize()
+          } else if (d.header) {
+            this.x = Math.min(Math.max(originalWindowX + deltaX, 0), this.controller.get_max_x() - this.w);
+            this.y = Math.min(Math.max(originalWindowY + deltaY, 0), this.controller.get_max_y() - this.h - 40);
+          }
+
+          this.update_dimensions();
+        };
+
+        window.addEventListener("mousemove", event1);
+
+        const event2 = (e) => {
+          window.blur()
+          window.removeEventListener("mousemove", event1);
+          window.removeEventListener("mouseup", event2);
+        };
+
+        window.addEventListener("mouseup", event2);
+
+      });
+
+      this.controller.desktop.appendChild(this.frame);
+
+      this.focus();
+    }
+  }
+
+  window.addEventListener("load", (e) => {
+    os.start();
+    os.onReady = () => {
+      const window_controller = new WindowController();
+
+      window_controller.organize_file_list();
+
+      window_controller.organize_taskbar();
+
+      const downloader = $("#drop_to_download");
+      downloader.addEventListener("dragover", (e) =>{
+        e.preventDefault();
+      })
+      
+      downloader.addEventListener("drop", (e) =>{
+        e.preventDefault();
+        const fileName = e.dataTransfer.getData("fileName");
+
+        const extension = fileName.split(".").pop();
+
+        for(const app of APP_DIRECTORY) {
+          if(app.file_types.includes(extension)) {
+            app.download(fileName);
+          }
+        }
+      })
+    };
+  })
+</script>
+<style>
+  * {
+    /* <!-- ****  CSS Feature submission **** --> */
+    /* <!-- ****  (multiple fonts, the webkit system font is used for the notepad app while the rest of the app uses Helvetica) **** --> */
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-weight: 100;
+  }
+
+  body,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+  }
+
+  :root:root {
+    /* <!-- ****  CSS Feature submission **** --> */
+    /* <!-- ****  (variables) **** --> */
+    --color-N-2: #DADBE9;
+    --color-N-3: #BCBED6;
+    --color-B-1: #F5FCFF;
+    --color-S-2: #FFF6D8;
+    --color-S-3: #57351D;
+  }
+
+  #os_wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: red;
+    /* ugly color so you can see if theres an error */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .window_frame {
+    position: absolute;
+    background: white;
+    left: var(--pos-x);
+    top: var(--pos-y);
+    width: var(--width);
+    height: var(--height);
+    cursor: var(--cursor-type);
+    display: flex;
+    flex-direction: column;
+    /* <!-- ****  CSS Feature submission **** --> */
+    transition: opacity .2s ease-in-out, transform .2s ease-in-out;
+    z-index: 20;
+  }
+
+  /* <!-- ****  CSS Feature submission **** --> */
+  /* <!-- ****  (attributes) **** --> */
+  .window_frame[closing="true"],
+  .window_frame[opening="true"] {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .window_header {
+    width: 100%;
+    height: 40px;
+    flex-shrink: 0;
+    background: var(--color-N-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 6px;
+  }
+
+  .window_content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: black;
+    position: relative;
+  }
+
+  .window_close_button {
+    height: 28px;
+    width: 28px;
+    background: var(--color-N-3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: default;
+  }
+
+  .window_header span {
+    width: 28px;
+    height: 0;
+  }
+
+  .window_overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .window_safety_frame {
+    width: 100%;
+    height: 100%;
+    /* border: 2px solid var(--color-N-3); */
+    box-sizing: border-box;
+  }
+
+  .Camera__interface {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.25s;
+  }
+
+  .Camera__interface_bottom {
+    bottom: 10px;
+    width: 100%;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #desktop {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #d2e1fa;
+  }
+
+  #taskbar {
+    box-sizing: border-box;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    background: #e1f2fa;
+  }
+
+  #taskbar_apps {
+    display: flex;
+    gap: 10px;
+  }
+
+  video {
+    display: none;
+  }
+
+  .canvasContainer {
+    display: flex;
+  }
+
+  .canvasContainer canvas {
+    /* <!-- ****  CSS Feature submission **** --> */
+    transform: scaleX(-100%);
+  }
+
+  .Camera__canvas {
+    transform: scale(var(--scale));
+    transform-origin: top left;
+  }
+
+
+  
+  .Camera__interface_filter {
+    position: absolute;
+    width: 15px;
+    height: 70%;
+    top: 15%;
+    left: 20px;
+    background: #92B5F9;
+  }
+
+  .Camera__interface_filter_scrubber {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #ccc;
+    background: white;
+    left: 50%;
+    transform: translateX(-50%);
+    position: absolute;
+    top: var(--y);
+  }
+
+  .Camera__interface_text {
+    font-size: 2.5em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 100;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.5s;
+    /* <!-- ****  CSS Feature submission **** --> */
+    user-select: none;
+  }
+
+  .Camera__interface_text.show {
+    opacity: 1;
+  }
+  
+  .window_content[data-camera-state="photo"] .Camera__interface {
+    opacity: 0;
+  }
+
+  .Camera__result_display {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    z-index: 20;
+    background-size: cover;
+  }
+
+  .Camera__result_display_sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 30;
+  }
+
+  .Camera__result_display img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .Camera__result_display_buttons>* {
+    flex: 0 1 auto;
+  }
+
+  .Camera__result_display_buttons {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+  }
+
+  .Camera__result_display_captions {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+  }
+
+  .Camera__result_display_caption {
+    background: black;
+    padding: 8px;
+    width: fit-content;
+    cursor: move;
+    position: absolute;
+    left: var(--pos-x);
+    top: var(--pos-y);
+    max-width: 200px;
+  }
+
+  .Camera__result_display_caption[animate-position="true"] {
+    transition: top .2s ease-in-out, left .2s ease-in-out;
+  }
+
+  .Camera__result_display_caption h3 {
+    color: white;
+    cursor: text;
+    text-align: var(--align)
+  }
+
+  .primary,
+  .secondary {
+    padding: 8px 16px;
+    border: none;
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 16px;
+    font-weight: 100;
+    margin: 0 4px;
+  }
+
+  .primary {
+    background-color: white;
+    color: black;
+  }
+
+  .secondary {
+    background-color: #BBBBBB;
+    color: white;
+  }
+
+  [hidden=true] {
+    display: none;
+  }
+
+  u-icon {
+    display: flex;
+  }
+
+  .WebBrowser__frames iframe {
+    width: 100%;
+    height: 100%;
+  }
+
+  .Notepad {
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .Notepad__controls {
+    display: flex;
+    justify-content: space-between;
+    overflow-x: scroll;
+    padding: 16px;
+  }
+
+  .Notepad__input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow-y: scroll;
+    font-size: 1.15em;
+    line-height: 1.25;
+    list-style-position: inside;
+  }
+
+  .Notepad__input * {
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', sans-serif;
+    font-weight: 400;
+  }
+
+  .Notepad__input .h1 {
+    font-size: 2em;
+  }
+
+  .Photo {
+    height: 100%;
+    width: 100%;
+    background: white;
+    position: relative;
+  }
+  
+  .Notepad__buttons,.Photo__buttons  {
+    display: flex;
+    gap: 4px;
+  }
+
+  .Photo__buttons button, .Notepad__buttons button {
+    padding: 0 12px;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+  }
+
+  .Photo.shrink .Photo__buttons button[action="shrink"], .Photo.stretch .Photo__buttons button[action="stretch"], .Photo.spread .Photo__buttons button[action="spread"], .Photo .Photo__buttons button[action="unlock-window"] {
+    background-color: #00AA8C;
+    fill: white;
+    color: white;
+  }
+
+  .Photo__buttons button[action="unlock-window"], .Photo__buttons button[action="unlock-window"] {
+    font-weight: 400;
+  }
+
+  .Photo__buttons button[action="unlock-window"] {
+    display: none;
+  }
+
+  .Photo.locked .Photo__buttons button[action="unlock-window"] {
+    display: flex;
+  }
+
+  .Photo.locked .Photo__buttons button[action="lock-window"] {
+    display: none;
+  }
+
+  .Photo.shrink img {
+    /* <!-- ****  CSS Feature submission **** --> */
+    object-fit: contain;  
+  }
+  
+  .Photo.stretch img {
+    object-fit: fill;  
+  }
+
+  .Photo.spread img {
+    object-fit: cover;  
+  }
+  
+  .Photo__buttons {
+    position: absolute;
+    z-index: 10;
+    top: 16px;
+    right: 16px;
+  }
+  .Photo__buttons button {
+    background-color: #E7FFF5;
+  }
+
+  
+  
+  .Notepad__buttons button {
+    background-color: var(--color-S-2);
+    color: var(--color-S-3);
+  }
+
+  .Notepad__buttons button span {
+    font-weight: 400;
+  }
+
+  .Notepad__buttons button[action="save"],
+  .Notepad__buttons button[action="save"] span {
+    background-color: var(--color-S-3);
+    color: white;
+    fill: white;
+  }
+
+  .Notepad.saved button[action="save"] {
+    display: none;
+  }
+
+  .Notepad:not(.saved) button[action="saved"] {
+    display: none;
+  }
+
+  b,
+  strong,
+  .Notepad__input b,
+  .Notepad__input b *,
+  .Notepad__input strong,
+  .Notepad__input strong * {
+    font-weight: 700;
+  }
+
+  .Notepad__input p,
+  .Notepad__input li,
+  .Notepad__input ul,
+  .Notepad__input ol {
+    padding: 4px 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .Notepad__input .highlight {
+    /* background-color: var(--color-B-1); */
+    /* width: 100%; */
+    /* border-radius: 4px; */
+  }
+
+  .window_frame.focused {
+    /* <!-- ****  CSS Feature submission **** --> */
+    z-index: 100;
+  }
+
+  .window_frame:not(.focused) .window_overlay {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .Photo {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .Photo__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .Camera__button {
+    padding: 4px;
+  }
+</style>
+
+</html>
